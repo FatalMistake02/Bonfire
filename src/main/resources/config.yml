@@ -1,0 +1,20 @@
+# Claiming Limits Configuration
+limits:
+  # If set to false, claiming isn't limited at all
+  enabled: true
+
+  # Base values every player starts with
+  starting-values:
+    chunks: 0
+    claims: 1
+
+  # Earning additional chunks and claims based on playtime
+  playtime-earning:
+    enabled: true
+    minutes-per-chunk: 60
+    minutes-per-claim: 1440 # 24 hours
+
+  # Absolute hard caps (use -1 for no limit)
+  maximum:
+    chunks: -1
+    claims: 5
