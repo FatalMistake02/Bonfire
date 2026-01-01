@@ -41,11 +41,14 @@ class PlayerListener(
     }
 
     /**
-     * Refreshes other players when an owner joins
+     * Refreshes the player and others when joining
      */
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
-        refreshAffectedPlayers(event.player.uniqueId)
+        val p = event.player
+        // Initialize the player state and notification immediately
+        handlePlayerUpdate(p, p.location, true)
+        refreshAffectedPlayers(p.uniqueId)
     }
 
     /**
@@ -69,13 +72,14 @@ class PlayerListener(
             val chunk = loc.chunk
             val currOwner = registry.getAt(chunk)?.owner
             val lastOwner = lastOwners[p.uniqueId]
+            val hasCache = lastOwners.containsKey(p.uniqueId)
 
-            if (lastOwner != currOwner || !lastOwners.containsKey(p.uniqueId)) {
+            if (!hasCache || lastOwner != currOwner) {
                 lastOwners[p.uniqueId] = currOwner
 
                 if (currOwner != null) {
                     msg.actionBar(p, Bukkit.getOfflinePlayer(currOwner).name ?: "Unknown")
-                } else if (lastOwner != null) {
+                } else if (hasCache) {
                     msg.unclaimedBar(p)
                 }
             }

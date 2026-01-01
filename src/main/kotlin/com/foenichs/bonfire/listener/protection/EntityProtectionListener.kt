@@ -1,5 +1,6 @@
 package com.foenichs.bonfire.listener.protection
 
+import com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent
 import com.foenichs.bonfire.service.ProtectionService
 import com.foenichs.bonfire.storage.ClaimRegistry
 import org.bukkit.entity.*
@@ -58,9 +59,6 @@ class EntityProtectionListener(
         val victimChunk = victim.location.chunk
         val claim = registry.getAt(victimChunk) ?: return
 
-        // If the victim is an authorized player, they take damage normally
-        if (victim is Player && protection.canBypass(victim, victimChunk)) return
-
         // Resolve the responsible player (damager)
         val damager = when (val attacker = event.damager) {
             is Player -> attacker
@@ -70,8 +68,11 @@ class EntityProtectionListener(
             else -> null
         }
 
-        // If the damager is an authorized player, they deal damage normally
+        // Authorized damagers can always deal damage
         if (damager != null && protection.canBypass(damager, victimChunk)) return
+
+        // Mobs and world damage can only affect authorized players
+        if (damager == null && victim is Player && protection.canBypass(victim, victimChunk)) return
 
         // Enforcement for unauthorized actors
         if (claim.allowEntityInteract == "false" || claim.allowEntityInteract == "onlyMounts") {
@@ -79,11 +80,41 @@ class EntityProtectionListener(
             // Allow if a player is interacting with entities they own
             if (damager != null && protection.ownsEntity(damager, victim)) return
 
-            // Block non-authorized damage (mobs hitting players, players hitting mobs, etc.)
+            // Block explosions and all other damage from unauthorized sources
             if (event.cause == DamageCause.ENTITY_EXPLOSION || event.cause == DamageCause.BLOCK_EXPLOSION) {
                 event.isCancelled = true
                 return
             }
+
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Knockback caused by entities
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onEntityKnockback(event: EntityKnockbackByEntityEvent) {
+        val victim = event.entity
+        val victimChunk = victim.location.chunk
+        val claim = registry.getAt(victimChunk) ?: return
+
+        // Responsible player
+        val damager = when (val source = event.hitBy) {
+            is Player -> source
+            is Projectile -> source.shooter as? Player
+            else -> null
+        }
+
+        // Authorized damagers can deal knockback normally
+        if (damager != null && protection.canBypass(damager, victimChunk)) return
+
+        // Only authorized players can be knocked back
+        if (damager == null && victim is Player && protection.canBypass(victim, victimChunk)) return
+
+        if (claim.allowEntityInteract == "false" || claim.allowEntityInteract == "onlyMounts") {
+            // Allow if the damager owns the victim
+            if (damager != null && protection.ownsEntity(damager, victim)) return
 
             event.isCancelled = true
         }
