@@ -1,5 +1,6 @@
 package com.foenichs.bonfire.service
 
+import com.foenichs.bonfire.Bonfire
 import com.foenichs.bonfire.storage.ClaimRegistry
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -7,12 +8,17 @@ import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Creeper
 import org.bukkit.entity.Mob
 import org.bukkit.entity.Player
+import org.bukkit.permissions.PermissionAttachment
 import org.bukkit.scoreboard.Team
+import java.util.*
 
 class VisualService(
+    private val plugin: Bonfire,
     private val registry: ClaimRegistry,
-    private val protection: ProtectionService
+    private val protection: ProtectionService,
+    private val limits: LimitService
 ) {
+    private val attachments = mutableMapOf<UUID, PermissionAttachment>()
 
     /**
      * Lazy-initialized team to disable physical collision via scoreboard
@@ -33,6 +39,9 @@ class VisualService(
     fun updateValues(player: Player) {
         val chunk = player.location.chunk
         val claim = registry.getAt(chunk)
+
+        // Manage dynamic command permissions based on location
+        updatePermissions(player)
 
         if (claim == null || protection.canBypass(player, chunk)) {
             resetPlayer(player)
@@ -71,6 +80,40 @@ class VisualService(
                 if (noCollideTeam.hasEntry(player.name)) noCollideTeam.removeEntry(player.name)
             }
         }
+    }
+
+    /**
+     * Dynamically updates player permissions to show/hide subcommands
+     */
+    private fun updatePermissions(player: Player) {
+        val attachment = attachments.getOrPut(player.uniqueId) { player.addAttachment(plugin) }
+        val chunk = player.location.chunk
+        val claim = registry.getAt(chunk)
+
+        val canClaim = claim == null && registry.getOwnedChunks(player.uniqueId) < limits.getLimits(player).maxChunks
+        val isOwner = claim?.owner == player.uniqueId || (protection.canBypass(player, chunk) && claim != null)
+
+        // Check if there are actually players to remove
+        val canRemove = isOwner && (claim.trustedAlways.isNotEmpty() || claim.trustedOnline.isNotEmpty())
+
+        val changedClaim = attachment.permissions.getOrDefault("bonfire.command.claim", false) != canClaim
+        val changedOwner = attachment.permissions.getOrDefault("bonfire.command.owner", false) != isOwner
+        val changedRemove = attachment.permissions.getOrDefault("bonfire.command.removeplayer", false) != canRemove
+
+        // Only rebuild the command tree if the permission status actually changed
+        if (changedClaim || changedOwner || changedRemove) {
+            attachment.setPermission("bonfire.command.claim", canClaim)
+            attachment.setPermission("bonfire.command.owner", isOwner)
+            attachment.setPermission("bonfire.command.removeplayer", canRemove)
+            player.updateCommands()
+        }
+    }
+
+    /**
+     * Cleans up permission attachments when a player leaves
+     */
+    fun removeAttachment(player: Player) {
+        attachments.remove(player.uniqueId)?.remove()
     }
 
     /**

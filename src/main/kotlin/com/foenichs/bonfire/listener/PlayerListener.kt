@@ -53,8 +53,10 @@ class PlayerListener(
      */
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
-        lastOwners.remove(event.player.uniqueId)
-        refreshAffectedPlayers(event.player.uniqueId)
+        val p = event.player
+        visualService.removeAttachment(p)
+        lastOwners.remove(p.uniqueId)
+        refreshAffectedPlayers(p.uniqueId)
     }
 
     /**
@@ -70,7 +72,6 @@ class PlayerListener(
 
             if (lastOwner != currOwner || !lastOwners.containsKey(p.uniqueId)) {
                 lastOwners[p.uniqueId] = currOwner
-                p.updateCommands()
 
                 if (currOwner != null) {
                     msg.actionBar(p, Bukkit.getOfflinePlayer(currOwner).name ?: "Unknown")
@@ -97,7 +98,6 @@ class PlayerListener(
                 val claim = registry.getAt(onlinePlayer.location.chunk)
                 if (claim?.owner == ownerId) {
                     visualService.updateValues(onlinePlayer)
-                    onlinePlayer.updateCommands()
                 }
             }
         })

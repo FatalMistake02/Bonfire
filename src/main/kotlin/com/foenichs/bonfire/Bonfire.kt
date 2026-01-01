@@ -29,7 +29,7 @@ class Bonfire : JavaPlugin() {
         val messenger = Messenger()
         val limitService = LimitService(config, registry)
         protectionService = ProtectionService(registry)
-        visualService = VisualService(registry, protectionService)
+        visualService = VisualService(this, registry, protectionService, limitService)
 
         // Initialize Listener first (ClaimService needs it for cache updates)
         val playerListener = PlayerListener(this, registry, messenger, visualService)

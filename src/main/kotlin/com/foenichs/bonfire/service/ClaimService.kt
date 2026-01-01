@@ -79,11 +79,11 @@ class ClaimService(
     }
 
     /**
-     * Update cache, commands and visuals
+     * Update cache, permissions and visuals
      */
     private fun finishAction(p: Player, ownerId: UUID?) {
         playerListener.updateCache(p)
-        p.updateCommands()
+        visualService.updateValues(p)
         if (ownerId != null) {
             msg.actionBar(p, Bukkit.getOfflinePlayer(ownerId).name ?: "Unknown")
         }
@@ -112,7 +112,7 @@ class ClaimService(
             else -> ""
         }
         msg.send(p, Component.text().append(Component.text("Set $r to $v. ")).append(Component.text(desc, NamedTextColor.GRAY)).build())
-        p.updateCommands()
+        visualService.updateValues(p)
         Bukkit.getOnlinePlayers().filter { registry.getAt(it.location.chunk)?.id == c.id }.forEach { visualService.updateValues(it) }
     }
 
@@ -127,12 +127,12 @@ class ClaimService(
             msg.send(p, Component.text().append(Component.text("This player was added already, nothing changed. ")).append(Component.text("To remove players, use the /chunk removeplayer command.", NamedTextColor.GRAY)).build())
             return
         }
-        if (t == "always") { c.trustedAlways.add(off.uniqueId); db.addTrust(c.id!!, off.uniqueId, "always") }
-        else { c.trustedOnline.add(off.uniqueId); db.addTrust(c.id!!, off.uniqueId, "whileOnline") }
+        if (t == "always") { c.trustedAlways.add(off.uniqueId); db.addTrust(c.id!!, off.uniqueId, "ALWAYS") }
+        else { c.trustedOnline.add(off.uniqueId); db.addTrust(c.id!!, off.uniqueId, "WHILE_ONLINE") }
         val desc = if (t == "always") "They aren't affected by claim rules anymore, even when you're not online." else "While you're online, they aren't affected by claim rules anymore."
         msg.send(p, Component.text().append(Component.text("Added ")).append(msg.head(n)).append(Component.space()).append(Component.text(n, NamedTextColor.WHITE, TextDecoration.BOLD)).append(Component.text(" to your claim. ")).append(Component.text(desc, NamedTextColor.GRAY)).build())
-        p.updateCommands()
-        off.player?.let { if (registry.getAt(it.location.chunk)?.id == c.id) { visualService.updateValues(it); it.updateCommands() } }
+        visualService.updateValues(p)
+        off.player?.let { if (registry.getAt(it.location.chunk)?.id == c.id) { visualService.updateValues(it) } }
     }
 
     fun removeTrust(p: Player, n: String) {
@@ -141,8 +141,8 @@ class ClaimService(
         if (c.trustedAlways.remove(id) || c.trustedOnline.remove(id)) {
             db.removeTrust(c.id!!, id)
             msg.send(p, Component.text().append(Component.text("Removed ")).append(msg.head(n)).append(Component.space()).append(Component.text(n, NamedTextColor.WHITE, TextDecoration.BOLD)).append(Component.text(" from your claim.")).build())
-            p.updateCommands()
-            Bukkit.getPlayer(id)?.let { if (registry.getAt(it.location.chunk)?.id == c.id) { visualService.updateValues(it); it.updateCommands() } }
+            visualService.updateValues(p)
+            Bukkit.getPlayer(id)?.let { if (registry.getAt(it.location.chunk)?.id == c.id) { visualService.updateValues(it) } }
         }
     }
 

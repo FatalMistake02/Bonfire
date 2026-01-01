@@ -26,27 +26,21 @@ class ChunkCommand(
                 registry.getAt(p.location.chunk) == null && registry.getOwnedChunks(p.uniqueId) < limits.getLimits(p).maxChunks
 
             if (!canClaim && !isOwner(p) && !p.isOp) {
-                msg.sendNoAccess(p); p.updateCommands()
+                msg.sendNoAccess(p)
             } else {
                 ctx.source.sender.sendMessage(Component.text("Usage: /chunk <subcommand>", NamedTextColor.RED))
             }
             1
-        }.then(Commands.literal("claim").requires { src ->
-            (src.sender as? Player)?.let {
-                registry.getAt(it.location.chunk) == null && registry.getOwnedChunks(it.uniqueId) < limits.getLimits(
-                    it
-                ).maxChunks
-            } ?: false
-        }.executes { ctx ->
+        }.then(Commands.literal("claim").requires { it.sender.hasPermission("bonfire.command.claim") }.executes { ctx ->
             service.tryClaim(ctx.source.sender as Player); 1
         })
 
-            .then(Commands.literal("unclaim").requires { isOwner(it.sender as? Player) }.executes { ctx ->
+            .then(Commands.literal("unclaim").requires { it.sender.hasPermission("bonfire.command.owner") }.executes { ctx ->
                 service.tryUnclaim(ctx.source.sender as Player); 1
             })
 
             .then(
-                Commands.literal("setrule").requires { isOwner(it.sender as? Player) }
+                Commands.literal("setrule").requires { it.sender.hasPermission("bonfire.command.owner") }
                     .then(booleanRuleNode("allowBlockBreak") { it.allowBlockBreak })
                     .then(booleanRuleNode("allowBlockInteract") { it.allowBlockInteract }).then(
                         Commands.literal("allowEntityInteract")
@@ -63,10 +57,8 @@ class ChunkCommand(
                                 ); 1
                             })
                     )
-            )
-
-            .then(
-                Commands.literal("addplayer").requires { isOwner(it.sender as? Player) }
+            ).then(
+                Commands.literal("addplayer").requires { it.sender.hasPermission("bonfire.command.owner") }
                     .then(
                         Commands.argument("target", StringArgumentType.word()).suggests { ctx, b ->
                             val p = ctx.source.sender as Player
@@ -88,15 +80,8 @@ class ChunkCommand(
                             ); 1
                         })
                     )
-            )
-
-            .then(
-                Commands.literal("removeplayer").requires { p ->
-                    val player = p.sender as? Player ?: return@requires false
-                    val c = registry.getAt(player.location.chunk)
-                    isOwner(player) && (c?.let { it.trustedAlways.isNotEmpty() || it.trustedOnline.isNotEmpty() }
-                        ?: false)
-                }.then(Commands.argument("target", StringArgumentType.word()).suggests { ctx, b ->
+            ).then(
+                Commands.literal("removeplayer").requires { it.sender.hasPermission("bonfire.command.removeplayer") }.then(Commands.argument("target", StringArgumentType.word()).suggests { ctx, b ->
                     val c = registry.getAt((ctx.source.sender as Player).location.chunk)
                     c?.trustedAlways?.forEach { id -> Bukkit.getOfflinePlayer(id).name?.let { b.suggest(it) } }
                     c?.trustedOnline?.forEach { id -> Bukkit.getOfflinePlayer(id).name?.let { b.suggest(it) } }
