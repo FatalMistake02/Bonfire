@@ -16,13 +16,13 @@ class WorldProtectionListener(
 ) : Listener {
 
     /**
-     * Flowing liquids breaking blocks (grass, torches, redstone, etc.)
+     * Liquids flowing into claims
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onLiquidFlow(event: BlockFromToEvent) {
+        val fromChunk = event.block.chunk
         val toBlock = event.toBlock
-        if (toBlock.isEmpty || toBlock.isLiquid) return
-        if (!protection.checkAllowBlockBreak(toBlock.chunk)) {
+        if (!protection.isWorldActionAllowed(fromChunk, toBlock.chunk) && !protection.checkAllowBlockBreak(toBlock.chunk)) {
             event.isCancelled = true
         }
     }
@@ -33,17 +33,22 @@ class WorldProtectionListener(
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onFireSpread(event: BlockSpreadEvent) {
         if (event.source.type != Material.FIRE) return
-        if (!protection.checkAllowBlockBreak(event.block.chunk)) {
+        val fromChunk = event.source.chunk
+        val toChunk = event.block.chunk
+        if (!protection.isWorldActionAllowed(fromChunk, toChunk) && !protection.checkAllowBlockBreak(toChunk)) {
             event.isCancelled = true
         }
     }
 
     /**
-     * Fire destroying blocks
+     * Fire from outside destroying blocks inside a claim
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onBlockBurn(event: BlockBurnEvent) {
-        if (!protection.checkAllowBlockBreak(event.block.chunk)) {
+        val igniter = event.ignitingBlock ?: return
+        val fromChunk = igniter.chunk
+        val toChunk = event.block.chunk
+        if (!protection.isWorldActionAllowed(fromChunk, toChunk) && !protection.checkAllowBlockBreak(toChunk)) {
             event.isCancelled = true
         }
     }
