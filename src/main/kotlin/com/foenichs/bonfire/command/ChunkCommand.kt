@@ -12,6 +12,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.permissions.Permission
+import org.bukkit.permissions.PermissionDefault
 
 class ChunkCommand(
     private val service: ClaimService,
@@ -20,6 +22,18 @@ class ChunkCommand(
     private val msg: Messenger
 ) {
     fun register(registrar: Commands) {
+        /** Register command permissions to override the default Operator access */
+        val pm = Bukkit.getPluginManager()
+        listOf(
+            "bonfire.command.claim",
+            "bonfire.command.owner",
+            "bonfire.command.removeplayer"
+        ).forEach { node ->
+            if (pm.getPermission(node) == null) {
+                pm.addPermission(Permission(node, PermissionDefault.FALSE))
+            }
+        }
+
         val node = Commands.literal("chunk").executes { ctx ->
             val p = ctx.source.sender as? Player ?: return@executes 0
             val canClaim =

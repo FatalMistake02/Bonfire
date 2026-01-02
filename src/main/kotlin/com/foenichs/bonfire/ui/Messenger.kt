@@ -55,8 +55,8 @@ class Messenger {
     fun sendNoAccess(p: Player) {
         send(
             p,
-            Component.text().append(Component.text(" You can't claim chunks yet. "))
-                .append(Component.text("Claim limits increase depending on your playtime.", NamedTextColor.GRAY))
+            Component.text().append(Component.text("You can't do anything. "))
+                .append(Component.text("This chunk is either claimed already, or you can't claim it yet.", NamedTextColor.GRAY))
                 .build()
         )
     }
