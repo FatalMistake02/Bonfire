@@ -68,24 +68,31 @@ class ClaimService(
         if (c.chunks.size <= 1) {
             db.deleteClaim(c.id!!); registry.remove(c)
             msg.send(p, Component.text("Successfully unclaimed this chunk and deleted the claim."))
-            msg.unclaimedBar(p); finishAction(p, null)
+            finishAction(p, null)
         } else if (isConnected(c, pos)) {
             c.chunks.remove(pos); db.removeChunk(c.id!!, pos)
             msg.send(p, Component.text("Successfully unclaimed this chunk and removed it from your claim."))
-            msg.unclaimedBar(p); finishAction(p, null)
+            finishAction(p, null)
         } else {
             msg.send(p, Component.text().append(Component.text("You can't unclaim this chunk. ")).append(Component.text("Unclaiming it would split up your claim, please unclaim outer chunks first.", NamedTextColor.GRAY)).build())
         }
     }
 
     /**
-     * Update cache, permissions and visuals
+     * Update cache, permissions and visuals for all players in the chunk
      */
     private fun finishAction(p: Player, ownerId: UUID?) {
-        playerListener.updateCache(p)
-        visualService.updateValues(p)
-        if (ownerId != null) {
-            msg.actionBar(p, Bukkit.getOfflinePlayer(ownerId).name ?: "Unknown")
+        val chunk = p.location.chunk
+        Bukkit.getOnlinePlayers().forEach { onlinePlayer ->
+            if (onlinePlayer.location.chunk == chunk) {
+                playerListener.updateCache(onlinePlayer)
+                visualService.updateValues(onlinePlayer)
+                if (ownerId != null) {
+                    msg.actionBar(onlinePlayer, Bukkit.getOfflinePlayer(ownerId).name ?: "Unknown")
+                } else {
+                    msg.unclaimedBar(onlinePlayer)
+                }
+            }
         }
     }
 
