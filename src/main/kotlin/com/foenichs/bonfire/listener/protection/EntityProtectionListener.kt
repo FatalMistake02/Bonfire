@@ -10,10 +10,13 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
+import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.event.vehicle.VehicleDamageEvent
+import org.bukkit.event.vehicle.VehicleDestroyEvent
 
 class EntityProtectionListener(
     private val registry: ClaimRegistry,
@@ -146,5 +149,57 @@ class EntityProtectionListener(
                 event.isCancelled = true
             }
         }
+    }
+
+    /**
+     * Placing entities (boats, armor stands, etc.)
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onEntityPlace(event: EntityPlaceEvent) {
+        val player = event.player ?: return
+        val chunk = event.entity.location.chunk
+
+        if (protection.canBypass(player, chunk)) return
+
+        val claim = registry.getAt(chunk) ?: return
+        if (claim.allowEntityInteract == "false" || claim.allowEntityInteract == "onlyMounts") {
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Damaging vehicles like boats or minecarts
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onVehicleDamage(event: VehicleDamageEvent) {
+        val attacker = event.attacker ?: return
+        if (isVehicleActionBlocked(attacker, event.vehicle.location.chunk)) {
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Destroying vehicles like boats or minecarts
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onVehicleDestroy(event: VehicleDestroyEvent) {
+        val attacker = event.attacker ?: return
+        if (isVehicleActionBlocked(attacker, event.vehicle.location.chunk)) {
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Helper logic for vehicle protection
+     */
+    private fun isVehicleActionBlocked(attacker: Entity, chunk: org.bukkit.Chunk): Boolean {
+        val player = when (attacker) {
+            is Player -> attacker
+            is Projectile -> attacker.shooter as? Player
+            else -> null
+        }
+        if (player != null && protection.canBypass(player, chunk)) return false
+        val claim = registry.getAt(chunk) ?: return false
+        return claim.allowEntityInteract == "false" || claim.allowEntityInteract == "onlyMounts"
     }
 }
