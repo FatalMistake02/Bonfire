@@ -19,6 +19,12 @@ class VisualService(
     private val limits: LimitService
 ) {
     private val attachments = mutableMapOf<UUID, PermissionAttachment>()
+    private val lastRuleStates = mutableMapOf<UUID, RuleState?>()
+
+    /**
+     * Data class to track the state of claim rules for command refreshing
+     */
+    private data class RuleState(val allowBreak: Boolean, val allowInteract: Boolean, val allowEntity: String)
 
     /**
      * Lazy-initialized team to disable physical collision via scoreboard
@@ -40,7 +46,7 @@ class VisualService(
         val chunk = player.location.chunk
         val claim = registry.getAt(chunk)
 
-        // Manage dynamic command permissions based on location
+        // Manage dynamic command permissions and tree refreshes
         updatePermissions(player)
 
         if (claim == null || protection.canBypass(player, chunk)) {
@@ -83,7 +89,7 @@ class VisualService(
     }
 
     /**
-     * Dynamically updates player permissions to show/hide subcommands
+     * Dynamically updates player permissions and refreshes the command tree if state changes
      */
     private fun updatePermissions(player: Player) {
         val attachment = attachments.getOrPut(player.uniqueId) { player.addAttachment(plugin) }
@@ -97,24 +103,33 @@ class VisualService(
         val isStrictOwner = claim != null && claim.owner == player.uniqueId
         val canRemove = isStrictOwner && (claim.trustedAlways.isNotEmpty() || claim.trustedOnline.isNotEmpty())
 
+        // Track the current values of the rules to detect internal claim updates
+        val currentRules = claim?.let { RuleState(it.allowBlockBreak, it.allowBlockInteract, it.allowEntityInteract) }
+        val lastRules = lastRuleStates[player.uniqueId]
+
         val changedClaim = attachment.permissions.getOrDefault("bonfire.command.claim", false) != canClaim
         val changedOwner = attachment.permissions.getOrDefault("bonfire.command.owner", false) != isStrictOwner
         val changedRemove = attachment.permissions.getOrDefault("bonfire.command.removeplayer", false) != canRemove
+        val changedRules = currentRules != lastRules
 
-        // Only rebuild the command tree if the permission status actually changed
-        if (changedClaim || changedOwner || changedRemove) {
+        // Rebuild the command tree if permissions OR rule values changed
+        if (changedClaim || changedOwner || changedRemove || changedRules) {
             attachment.setPermission("bonfire.command.claim", canClaim)
             attachment.setPermission("bonfire.command.owner", isStrictOwner)
             attachment.setPermission("bonfire.command.removeplayer", canRemove)
+
+            // Update rule cache and trigger Brigadier refresh
+            lastRuleStates[player.uniqueId] = currentRules
             player.updateCommands()
         }
     }
 
     /**
-     * Cleans up permission attachments when a player leaves
+     * Cleans up permission attachments and state caches when a player leaves
      */
     fun removeAttachment(player: Player) {
         attachments.remove(player.uniqueId)?.remove()
+        lastRuleStates.remove(player.uniqueId)
     }
 
     /**

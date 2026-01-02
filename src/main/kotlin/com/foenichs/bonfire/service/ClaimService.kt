@@ -110,6 +110,7 @@ class ClaimService(
 
     fun setRule(p: Player, r: String, v: String) {
         val c = registry.getAt(p.location.chunk) ?: return
+        if (r == "allowEntityInteract" && v != "true" && v != "false" && v != "onlyMounts") return
         when(r) { "allowBlockBreak" -> c.allowBlockBreak = v.toBoolean(); "allowBlockInteract" -> c.allowBlockInteract = v.toBoolean(); "allowEntityInteract" -> c.allowEntityInteract = v }
         db.updateRules(c)
         val desc = when (r) {
