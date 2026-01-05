@@ -119,9 +119,17 @@ class BlueMapService(
         val holesArray = polygonData.holes.toTypedArray()
 
         val marker =
-            ExtrudeMarker.builder().label(claimName).shape(polygonData.outerShape, 64f, 320f).lineColor(colorLine)
-                .fillColor(colorFill).depthTestEnabled(true).lineWidth(2).listed(false).minDistance(10.0)
-                .maxDistance(1000.0).holes(*holesArray).build()
+            ExtrudeMarker.builder()
+                .label(claimName)
+                .shape(polygonData.outerShape, -64f, 320f)
+                .lineColor(colorLine)
+                .fillColor(colorFill)
+                .depthTestEnabled(true)
+                .lineWidth(2).listed(false)
+                .minDistance(10.0)
+                .maxDistance(1000.0)
+                .holes(*holesArray)
+                .build()
 
         markerSet.put("claim_${claim.id}", marker)
     }
