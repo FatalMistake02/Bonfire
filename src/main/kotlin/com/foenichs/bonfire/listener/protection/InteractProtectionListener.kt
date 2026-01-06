@@ -2,11 +2,14 @@ package com.foenichs.bonfire.listener.protection
 
 import com.foenichs.bonfire.service.ProtectionService
 import com.foenichs.bonfire.storage.ClaimRegistry
+import io.papermc.paper.event.block.VaultChangeStateEvent
+import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
+import org.bukkit.event.block.BlockReceiveGameEvent
 import org.bukkit.event.player.PlayerInteractEvent
 
 class InteractProtectionListener(
@@ -42,4 +45,39 @@ class InteractProtectionListener(
             }
         }
     }
+
+    /**
+     * Blocks receiving game events like vibrations
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onReceiveGameEvent(event: BlockReceiveGameEvent) {
+        val block = event.block
+        val claim = registry.getAt(block.chunk) ?: return
+
+        if (!claim.allowBlockInteract) {
+            val entity = event.entity
+            if (entity is Player && protection.canBypass(entity, block.chunk)) return
+
+            event.isCancelled = true
+        }
+    }
+
+    /**
+     * Vault blocks changing state when a player approaches
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun onVaultChange(event: VaultChangeStateEvent) {
+        val block = event.block
+        val claim = registry.getAt(block.chunk) ?: return
+
+        if (!claim.allowBlockInteract) {
+            val player = event.player ?: return
+            if (protection.canBypass(player, block.chunk)) return
+
+            event.isCancelled = true
+        }
+    }
+
+    // Trial spawners detecting players can't be implemented yet
+    // https://github.com/PaperMC/Paper/issues/12988
 }
