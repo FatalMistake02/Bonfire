@@ -22,7 +22,7 @@ class ClaimService(
     private val limits: LimitService,
     private val visualService: VisualService,
     private val playerListener: PlayerListener,
-    private val blueMapService: BlueMapService,
+    private val blueMapService: BlueMapService?,
     private val plugin: Bonfire
 ) {
     data class PendingMerge(val worldUuid: UUID, val chunkKey: Long, val claims: List<Claim>, val time: Long)
@@ -44,7 +44,7 @@ class ClaimService(
         when {
             adj.size == 1 -> {
                 val c = adj.first(); val pos = ChunkPos(w, k); c.chunks.add(pos); db.addChunk(c.id!!, pos)
-                blueMapService.updateClaim(c)
+                blueMapService?.updateClaim(c)
                 msg.send(p, Component.text("Successfully claimed this chunk and added it to your claim."))
                 finishAction(p, c.owner)
             }
@@ -71,7 +71,7 @@ class ClaimService(
                     val claim = Claim(id, p.uniqueId, mutableSetOf(pos), defBreak, defInteract, defEntity)
 
                     registry.add(claim); db.addChunk(id, pos); db.updateRules(claim)
-                    blueMapService.updateClaim(claim)
+                    blueMapService?.updateClaim(claim)
                     msg.send(p, Component.text("Successfully claimed this chunk and created a new claim."))
                     finishAction(p, claim.owner)
                 }
@@ -87,12 +87,12 @@ class ClaimService(
         if (c.chunks.size <= 1) {
             val wid = c.chunks.first().worldUuid; val id = c.id!!
             db.deleteClaim(id); registry.remove(c)
-            blueMapService.removeClaim(id, wid)
+            blueMapService?.removeClaim(id, wid)
             msg.send(p, Component.text("Successfully unclaimed this chunk and deleted the claim."))
             finishAction(p, null)
         } else if (isConnected(c, pos)) {
             c.chunks.remove(pos); db.removeChunk(c.id!!, pos)
-            blueMapService.updateClaim(c)
+            blueMapService?.updateClaim(c)
             msg.send(p, Component.text("Successfully unclaimed this chunk and removed it from your claim."))
             finishAction(p, null)
         } else {
@@ -210,9 +210,9 @@ class ClaimService(
         m.claims.drop(1).forEach { d ->
             val wid = d.chunks.first().worldUuid; val id = d.id!!
             db.moveChunks(id, main.id!!); db.deleteClaim(id); main.chunks.addAll(d.chunks); main.trustedAlways.addAll(d.trustedAlways); main.trustedOnline.addAll(d.trustedOnline)
-            registry.remove(d); blueMapService.removeClaim(id, wid)
+            registry.remove(d); blueMapService?.removeClaim(id, wid)
         }
-        blueMapService.updateClaim(main)
+        blueMapService?.updateClaim(main)
         msg.send(p, Component.text("Successfully merged your claims.")); finishAction(p, main.owner)
         finishActionForClaim(main)
     }

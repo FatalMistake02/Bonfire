@@ -29,9 +29,15 @@ class Bonfire : JavaPlugin() {
         // Initialize Services
         val messenger = Messenger()
         val limitService = LimitService(config, registry)
-        val blueMapService = BlueMapService(this, registry)
         protectionService = ProtectionService(registry)
         visualService = VisualService(this, registry, protectionService, limitService)
+
+        // Initialize BlueMap Service (optional)
+        val blueMapService = if (Bukkit.getPluginManager().isPluginEnabled("BlueMap")) {
+            BlueMapService(this, registry)
+        } else {
+            null
+        }
 
         // Initialize Listener first (ClaimService needs it for cache updates)
         val playerListener = PlayerListener(this, registry, messenger, visualService)
@@ -45,7 +51,7 @@ class Bonfire : JavaPlugin() {
             BonfireCommand {
                 reloadConfig()
                 limitService.updateConfig(config)
-                blueMapService.refreshAll()
+                blueMapService?.refreshAll()
             }.register(event.registrar())
         }
 
