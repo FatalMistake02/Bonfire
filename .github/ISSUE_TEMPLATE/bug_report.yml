@@ -1,0 +1,27 @@
+name: 🐞 Bug report
+description: Report something that isn't working properly
+title: "[Bug]: "
+labels: [bug]
+assignees:
+  - foenichs
+body:
+  - type: checkboxes
+    attributes:
+      label: Please confirm the following.
+      options:
+        - label: I checked the [existing issues](https://github.com/foenichs/Bonfire/issues) for duplicate problems
+          required: true
+        - label: I am using the latest version of the plugin that's available on [Modrinth](https://modrinth.com/plugin/bonfire/versions)
+          required: true
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear description of what the bug is, how to reproduce it, and what you expected to happen. Include screenshots/videos if possible.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here, if you want.
+    validations:
+      required: false
