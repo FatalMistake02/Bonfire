@@ -12,10 +12,10 @@ import org.bukkit.entity.Tameable
 class ProtectionService(private val registry: ClaimRegistry) {
 
     /**
-     * Standard bypass check (Owner, TrustedAlways, TrustedOnline, or Creative/Spectator)
+     * Standard bypass check (Owner, TrustedAlways, TrustedOnline, or Creative+OP/Spectator)
      */
     fun canBypass(player: Player, chunk: Chunk): Boolean {
-        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return true
+        if (player.gameMode == GameMode.SPECTATOR || (player.gameMode == GameMode.CREATIVE && player.isOp)) return true
 
         val claim = registry.getAt(chunk) ?: return true
         val uuid = player.uniqueId
