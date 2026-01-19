@@ -9,6 +9,7 @@ import com.foenichs.bonfire.storage.ClaimRegistry
 import com.foenichs.bonfire.storage.DatabaseManager
 import com.foenichs.bonfire.ui.Messenger
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -68,6 +69,10 @@ class Bonfire : JavaPlugin() {
         pluginManager.registerEvents(ExplosionProtectionListener(registry, protectionService), this)
         pluginManager.registerEvents(InteractProtectionListener(registry, protectionService), this)
         pluginManager.registerEvents(EntityProtectionListener(registry, protectionService), this)
+
+        // bStats
+        val pluginId = 28932
+        Metrics(this, pluginId)
     }
 
     override fun onDisable() {

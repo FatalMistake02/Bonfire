@@ -2,10 +2,11 @@ plugins {
     kotlin("jvm") version "2.3.0"
     id("com.gradleup.shadow") version "8.3.0"
     id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.foenichs"
-version = "1.3"
+version = "1.4"
 
 repositories {
     mavenCentral()
@@ -21,6 +22,8 @@ dependencies {
 
     compileOnly("de.bluecolored:bluemap-api:2.7.7")
     compileOnly("com.flowpowered:flow-math:1.0.3")
+
+    implementation("org.bstats:bstats-bukkit:3.1.0")
 }
 
 tasks {
@@ -35,6 +38,12 @@ tasks {
 val targetJavaVersion = 21
 kotlin {
     jvmToolchain(targetJavaVersion)
+}
+
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    configurations = listOf(project.configurations.runtimeClasspath.get())
+    dependencies { exclude { it.moduleGroup != "org.bstats" } }
+    relocate("org.bstats", project.group.toString())
 }
 
 tasks.build {
